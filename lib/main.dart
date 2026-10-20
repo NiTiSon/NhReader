@@ -43,7 +43,65 @@ class NhReaderApp extends StatelessWidget {
           height: 60,
         ),
       ),
-      home: const Scaffold(),
+      home: const HomeShell(),
     );
+  }
+}
+
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  // Home is the landing tab.
+  int _index = 1;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _index,
+        children: const [
+          _PlaceholderPage(label: 'Bookmarks'),
+          _PlaceholderPage(label: 'Home'),
+          _PlaceholderPage(label: 'Menu'),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.bookmark_border),
+            selectedIcon: Icon(Icons.bookmark),
+            label: 'Bookmarks',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: 'Menu',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaceholderPage extends StatelessWidget {
+  const _PlaceholderPage({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(child: Center(child: Text(label)));
   }
 }
