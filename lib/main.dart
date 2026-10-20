@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'menu/menu_page.dart';
+import 'settings/settings_providers.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
   // targetSdk is 36, so Android 15+ forces edge-to-edge and ignores
   // statusBarColor. Ask for it explicitly so pre-15 devices match, then let
   // SafeArea in each screen keep content clear of the system bars.
@@ -19,7 +22,12 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const ProviderScope(child: NhReaderApp()));
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const NhReaderApp(),
+    ),
+  );
 }
 
 class NhReaderApp extends StatelessWidget {

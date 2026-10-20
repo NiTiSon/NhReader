@@ -10,16 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Phase 1 - API core
   dio: ^5.8.0
   path_provider: ^2.1.5
-
-  # Phase 2 - browse + search UI
   flutter_riverpod: ^2.6.1
   cached_network_image: ^3.4.1
-
-  # Phase 5 - API key at rest
   flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
