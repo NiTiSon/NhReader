@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,22 @@ final settingsProvider = Provider<SettingsRepository>(
 final accountsProvider = Provider<AccountsRepository>(
   (ref) => AccountsRepository(ref.watch(secureStorageProvider)),
 );
+
+/// Live theme choice. Kept in a Notifier (not read straight off the
+/// repository) so setting it rebuilds MaterialApp immediately, without an
+/// app restart.
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() => ref.read(settingsProvider).themeMode;
+
+  Future<void> set(ThemeMode mode) async {
+    state = mode; // Update the UI first, then persist.
+    await ref.read(settingsProvider).setThemeMode(mode);
+  }
+}
+
+final themeModeProvider =
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
 /// The account whose API key requests should use, or null in guest mode.
 final activeAccountProvider = FutureProvider<Account?>((ref) async {

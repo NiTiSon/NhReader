@@ -12,16 +12,8 @@ Future<void> main() async {
   // targetSdk is 36, so Android 15+ forces edge-to-edge and ignores
   // statusBarColor. Ask for it explicitly so pre-15 devices match, then let
   // SafeArea in each screen keep content clear of the system bars.
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      statusBarBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+  // System bar icon colors follow the app theme via AnnotatedRegion below.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   runApp(
     ProviderScope(
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
@@ -30,30 +22,65 @@ Future<void> main() async {
   );
 }
 
-class NhReaderApp extends StatelessWidget {
+/// Builds the app theme for [brightness]. Dark uses the app's hand-picked
+/// surface colors; light derives a matching palette from the same seed.
+ThemeData _buildTheme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final surface = isDark ? const Color(0xFF_0F0F14) : Colors.white;
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    scaffoldBackgroundColor: surface,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF_E51160),
+      brightness: brightness,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: surface,
+      indicatorColor: isDark ? const Color(0xFF_2A1520) : const Color(0xFFFCE4EC),
+      height: 60,
+    ),
+  );
+}
+
+/// Keeps status/navigation bar icon colors in sync with the current
+/// brightness, so switching theme recolors the system bars live too.
+SystemUiOverlayStyle _overlayStyleFor(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: isDark
+        ? Brightness.light
+        : Brightness.dark,
+  );
+}
+
+class NhReaderApp extends ConsumerWidget {
   const NhReaderApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Nh Reader',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF_0F0F14),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF_E51160),
-          brightness: Brightness.dark,
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final brightness = switch (themeMode) {
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+      // "system" follows the device setting.
+      _ => MediaQuery.platformBrightnessOf(context),
+    };
 
-        navigationBarTheme: const NavigationBarThemeData(
-          backgroundColor: Color(0xFF_0F0F14),
-          indicatorColor: Color(0xFF_2A1520),
-          height: 60,
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _overlayStyleFor(brightness),
+      child: MaterialApp(
+        title: 'Nh Reader',
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(Brightness.light),
+        darkTheme: _buildTheme(Brightness.dark),
+        themeMode: themeMode,
+        home: const HomeShell(),
       ),
-      home: const HomeShell(),
     );
   }
 }

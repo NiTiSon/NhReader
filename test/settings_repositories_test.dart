@@ -52,7 +52,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final settings = SettingsRepository(await SharedPreferences.getInstance());
 
-      expect(settings.themeMode, ThemeMode.dark);
+      expect(settings.themeMode, ThemeMode.system);
       expect(settings.activeAccountId, isNull);
     });
 

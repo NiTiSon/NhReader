@@ -10,9 +10,9 @@ class SettingsRepository {
 
   final SharedPreferences _prefs;
 
-  /// Matches the dark-only theme the app ships with today.
+  /// Follows the device setting until the user picks Light or Dark.
   ThemeMode get themeMode =>
-      ThemeMode.values[_prefs.getInt(_keyTheme) ?? ThemeMode.dark.index];
+      ThemeMode.values[_prefs.getInt(_keyTheme) ?? ThemeMode.system.index];
 
   Future<void> setThemeMode(ThemeMode value) =>
       _prefs.setInt(_keyTheme, value.index);
