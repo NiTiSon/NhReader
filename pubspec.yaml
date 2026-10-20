@@ -1,0 +1,30 @@
+name: nh_reader
+description: "NHentai.net unofficial application."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Phase 1 - API core
+  dio: ^5.8.0
+  path_provider: ^2.1.5
+
+  # Phase 2 - browse + search UI
+  flutter_riverpod: ^2.6.1
+  cached_network_image: ^3.4.1
+
+  # Phase 5 - API key at rest
+  flutter_secure_storage: ^9.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
