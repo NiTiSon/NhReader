@@ -76,5 +76,18 @@ void main() {
 
       expect(settings.activeAccountId, isNull);
     });
+
+    test('secure window is off by default and round-trips', () async {
+      SharedPreferences.setMockInitialValues({});
+      final settings = SettingsRepository(await SharedPreferences.getInstance());
+
+      expect(settings.secureWindow, isFalse);
+
+      await settings.setSecureWindow(true);
+      expect(settings.secureWindow, isTrue);
+
+      await settings.setSecureWindow(false);
+      expect(settings.secureWindow, isFalse);
+    });
   });
 }

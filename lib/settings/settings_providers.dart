@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'account.dart';
 import 'accounts_repository.dart';
+import 'secure_window_channel.dart';
 import 'settings_repository.dart';
 
 /// Created before runApp; main() overrides this with a loaded instance.
@@ -39,6 +40,22 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
 final themeModeProvider =
     NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+
+/// Live Secure Window choice. Applies FLAG_SECURE through a method channel,
+/// so the toggle takes effect immediately and is re-applied on launch.
+class SecureWindowNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.read(settingsProvider).secureWindow;
+
+  Future<void> set(bool value) async {
+    state = value; // Update the switch first, then apply + persist.
+    await SecureWindowChannel.apply(value);
+    await ref.read(settingsProvider).setSecureWindow(value);
+  }
+}
+
+final secureWindowProvider =
+    NotifierProvider<SecureWindowNotifier, bool>(SecureWindowNotifier.new);
 
 /// The account whose API key requests should use, or null in guest mode.
 final activeAccountProvider = FutureProvider<Account?>((ref) async {

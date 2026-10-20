@@ -15,10 +15,7 @@ class OptionsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Options')),
       body: ListView(
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('Appearance', style: TextStyle(fontSize: 13)),
-          ),
+          const _MenuLabel('Appearance'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SegmentedButton<ThemeMode>(
@@ -45,8 +42,32 @@ class OptionsPage extends ConsumerWidget {
                   ref.read(themeModeProvider.notifier).set(selection.first),
             ),
           ),
+          const _MenuLabel('Privacy'),
+          SwitchListTile(
+            title: const Text('Secure window'),
+            subtitle: const Text(
+              'Block screenshots and hide the app in the recents screen',
+            ),
+            value: ref.watch(secureWindowProvider),
+            onChanged: (value) =>
+                ref.read(secureWindowProvider.notifier).set(value),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _MenuLabel extends StatelessWidget {
+  const _MenuLabel(this.name);
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(name, style: Theme.of(context).textTheme.titleLarge),
     );
   }
 }

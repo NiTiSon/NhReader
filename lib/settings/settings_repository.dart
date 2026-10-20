@@ -7,6 +7,7 @@ class SettingsRepository {
 
   static const _keyTheme = 'theme';
   static const _keyActiveAccountId = 'active_account_id';
+  static const _keySecureWindow = 'secure_window';
 
   final SharedPreferences _prefs;
 
@@ -23,4 +24,10 @@ class SettingsRepository {
   Future<void> setActiveAccountId(String? id) => id == null
       ? _prefs.remove(_keyActiveAccountId)
       : _prefs.setString(_keyActiveAccountId, id);
+
+  /// Blocks screenshots and hides the app in recents when enabled.
+  bool get secureWindow => _prefs.getBool(_keySecureWindow) ?? false;
+
+  Future<void> setSecureWindow(bool value) =>
+      _prefs.setBool(_keySecureWindow, value);
 }

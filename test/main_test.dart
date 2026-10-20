@@ -65,4 +65,27 @@ void main() {
     expect(app.themeMode, ThemeMode.light);
     expect(app.theme!.brightness, Brightness.light);
   });
+
+  testWidgets('toggling Secure window flips the switch', (tester) async {
+    await _pumpApp(tester);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NhReaderApp)),
+    );
+
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Options'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(secureWindowProvider), isFalse);
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    expect(container.read(secureWindowProvider), isTrue);
+    expect(
+      tester.widget<Switch>(find.byType(Switch)).value,
+      isTrue,
+    );
+  });
 }
