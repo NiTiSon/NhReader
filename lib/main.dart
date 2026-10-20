@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'menu/menu_page.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // targetSdk is 36, so Android 15+ forces edge-to-edge and ignores
@@ -65,9 +67,9 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: const [
-          _PlaceholderPage(label: 'Bookmarks'),
-          _PlaceholderPage(label: 'Home'),
-          _PlaceholderPage(label: 'Menu'),
+          _PlaceholderPage(key: ValueKey('bookmarks-page'), label: 'Bookmarks'),
+          _PlaceholderPage(key: ValueKey('home-page'), label: 'Home'),
+          MenuPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -96,12 +98,25 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.label});
+  const _PlaceholderPage({super.key, required this.label});
 
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(child: Center(child: Text(label)));
+    return RefreshIndicator(
+      // shortcut: no data source yet, swap for the real refresh once the API layer lands.
+      onRefresh: () async {},
+      child: CustomScrollView(
+        // Always draggable so pull-to-refresh works on an empty screen.
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: SafeArea(child: Center(child: Text(label))),
+          ),
+        ],
+      ),
+    );
   }
 }
