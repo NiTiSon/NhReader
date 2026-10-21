@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'home/home_page.dart';
 import 'menu/menu_page.dart';
 import 'settings/secure_window_channel.dart';
 import 'settings/settings_providers.dart';
@@ -108,7 +109,7 @@ class _HomeShellState extends State<HomeShell> {
         index: _index,
         children: const [
           _PlaceholderPage(key: ValueKey('bookmarks-page'), label: 'Bookmarks'),
-          _PlaceholderPage(key: ValueKey('home-page'), label: 'Home'),
+          HomePage(key: ValueKey('home-page')),
           MenuPage(),
         ],
       ),

@@ -1,25 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nh_reader/main.dart';
 import 'package:nh_reader/settings/settings_providers.dart';
 
-Future<void> _pumpApp(WidgetTester tester) async {
-  SharedPreferences.setMockInitialValues({});
-  final prefs = await SharedPreferences.getInstance();
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-      child: const NhReaderApp(),
-    ),
-  );
-}
+import 'helpers/app_harness.dart';
 
 void main() {
   testWidgets('app renders with the three-tab navigation bar', (tester) async {
-    await _pumpApp(tester);
+    await pumpApp(tester);
 
     final navBar = find.byType(NavigationBar);
     expect(navBar, findsOneWidget);
@@ -32,7 +22,7 @@ void main() {
   });
 
   testWidgets('tapping Menu opens the menu tab', (tester) async {
-    await _pumpApp(tester);
+    await pumpApp(tester);
 
     await tester.tap(find.text('Menu'));
     await tester.pumpAndSettle();
@@ -44,7 +34,7 @@ void main() {
   testWidgets('choosing a theme in Options applies it without a restart', (
     tester,
   ) async {
-    await _pumpApp(tester);
+    await pumpApp(tester);
     final container = ProviderScope.containerOf(
       tester.element(find.byType(NhReaderApp)),
     );
@@ -67,7 +57,7 @@ void main() {
   });
 
   testWidgets('toggling Secure window flips the switch', (tester) async {
-    await _pumpApp(tester);
+    await pumpApp(tester);
     final container = ProviderScope.containerOf(
       tester.element(find.byType(NhReaderApp)),
     );
@@ -83,9 +73,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(secureWindowProvider), isTrue);
-    expect(
-      tester.widget<Switch>(find.byType(Switch)).value,
-      isTrue,
-    );
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
   });
 }
