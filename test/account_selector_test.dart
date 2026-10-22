@@ -9,6 +9,7 @@ import 'package:nh_reader/api/user.dart';
 import 'package:nh_reader/home/home_feed.dart';
 import 'package:nh_reader/main.dart';
 import 'package:nh_reader/menu/account_selector.dart';
+import 'package:nh_reader/settings/account.dart';
 import 'package:nh_reader/settings/accounts_repository.dart';
 import 'package:nh_reader/settings/settings_providers.dart';
 
@@ -56,6 +57,7 @@ void main() {
 
     expect(find.text('Accounts'), findsOneWidget);
     expect(find.text(account.maskedKey), findsOneWidget);
+    expect(find.text('API Key'), findsOneWidget);
     expect(find.text('Log in'), findsOneWidget);
     expect(
       tester.widget<ListTile>(find.widgetWithText(ListTile, 'Profile')).enabled,
@@ -92,7 +94,26 @@ void main() {
     expect(cached.avatarUrl, _profile.avatarUrl);
   });
 
-  testWidgets('logging in stores and activates the new account', (
+  testWidgets('log in opens the username and password form', (tester) async {
+    await _pumpApp(tester);
+
+    await tester.tap(find.text('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Guest'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Username or email'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    // Back on the account sheet, not signed in.
+    expect(find.text('Accounts'), findsOneWidget);
+  });
+
+  testWidgets('adding an API key stores and activates the account', (
     tester,
   ) async {
     await _pumpApp(tester);
@@ -101,7 +122,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Guest'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
+    await tester.tap(find.text('Use an API key'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'key-wxyz');
@@ -117,7 +138,7 @@ void main() {
       tester.element(find.byType(NhReaderApp)),
     );
     final stored = await container.read(accountsProvider).readAll();
-    expect(stored.single.apiKey, 'key-wxyz');
+    expect((stored.single as TokenAccount).apiKey, 'key-wxyz');
     expect(container.read(settingsProvider).activeAccountId, stored.single.id);
     expect(find.text(_profile.username), findsOneWidget);
     expect(stored.single.username, _profile.username);

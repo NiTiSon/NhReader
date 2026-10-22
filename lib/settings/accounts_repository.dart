@@ -4,8 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'account.dart';
 
-/// Stores every account (label + API key) encrypted as a single JSON list
-/// under one key, so the list and its secrets can never drift apart.
+/// Stores every account (credentials + cached profile) encrypted as a single
+/// JSON list under one key, so the list and its secrets can never drift apart.
 class AccountsRepository {
   AccountsRepository(this._storage);
 
@@ -23,8 +23,29 @@ class AccountsRepository {
         .toList();
   }
 
-  Future<Account> add({required String apiKey}) {
-    final account = Account.create(apiKey: apiKey);
+  Future<TokenAccount> add({required String apiKey}) {
+    final account = TokenAccount.create(apiKey: apiKey);
+    return _synchronized(() async {
+      final accounts = await readAll();
+      await _write([...accounts, account]);
+      return account;
+    });
+  }
+
+  /// Stores a username/password session. Its profile is cached from the login
+  /// response so the account renders immediately.
+  Future<LoggedInAccount> addSession({
+    required String accessToken,
+    required String refreshToken,
+    String? username,
+    String? avatarUrl,
+  }) {
+    final account = LoggedInAccount.create(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      username: username,
+      avatarUrl: avatarUrl,
+    );
     return _synchronized(() async {
       final accounts = await readAll();
       await _write([...accounts, account]);
@@ -52,6 +73,28 @@ class AccountsRepository {
         for (final account in accounts)
           if (account.id == id)
             account.withProfile(username: username, avatarUrl: avatarUrl)
+          else
+            account,
+      ]);
+    });
+  }
+
+  /// Persists rotated tokens. Called after a refresh; keeping the old refresh
+  /// token would break the next refresh because the server rotates it.
+  Future<void> setTokens(
+    String id, {
+    required String accessToken,
+    required String refreshToken,
+  }) {
+    return _synchronized(() async {
+      final accounts = await readAll();
+      await _write([
+        for (final account in accounts)
+          if (account.id == id && account is LoggedInAccount)
+            account.withTokens(
+              accessToken: accessToken,
+              refreshToken: refreshToken,
+            )
           else
             account,
       ]);

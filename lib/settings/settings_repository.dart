@@ -18,7 +18,7 @@ class SettingsRepository {
   Future<void> setThemeMode(ThemeMode value) =>
       _prefs.setInt(_keyTheme, value.index);
 
-  /// Id of the Account whose API key requests should use, null for guest.
+  /// Id of the active Account, null for guest.
   String? get activeAccountId => _prefs.getString(_keyActiveAccountId);
 
   Future<void> setActiveAccountId(String? id) => id == null

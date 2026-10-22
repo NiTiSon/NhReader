@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/nhentai_api.dart';
 import 'account.dart';
 import 'accounts_repository.dart';
 import 'secure_window_channel.dart';
@@ -62,7 +63,7 @@ final accountListProvider = FutureProvider.autoDispose<List<Account>>(
   (ref) => ref.watch(accountsProvider).readAll(),
 );
 
-/// The account whose API key requests should use, or null in guest mode.
+/// The account whose credentials requests should use, or null in guest mode.
 final activeAccountProvider = FutureProvider<Account?>((ref) async {
   final id = ref.watch(settingsProvider).activeAccountId;
   if (id == null) return null;
@@ -70,3 +71,46 @@ final activeAccountProvider = FutureProvider<Account?>((ref) async {
   final matches = accounts.where((a) => a.id == id);
   return matches.isEmpty ? null : matches.first;
 });
+
+/// Resolves credentials for outgoing requests and refreshes expired sessions.
+///
+/// Refresh is single-flight: concurrent 401s from one expired access token
+/// must not race, because the server invalidates the old refresh token as
+/// soon as the first refresh succeeds.
+class AccountSession {
+  AccountSession(this._ref);
+
+  final Ref _ref;
+  Future<String?>? _refreshing;
+
+  Future<String?> authorizationHeader() async {
+    final account = await _ref.read(activeAccountProvider.future);
+    return account?.authHeader;
+  }
+
+  Future<String?> refresh() {
+    return _refreshing ??= _refresh().whenComplete(() => _refreshing = null);
+  }
+
+  Future<String?> _refresh() async {
+    final account = await _ref.read(activeAccountProvider.future);
+    if (account is! LoggedInAccount) return null;
+    try {
+      final session = await NhentaiApi().refresh(account.refreshToken);
+      await _ref
+          .read(accountsProvider)
+          .setTokens(
+            account.id,
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+          );
+      _ref.invalidate(activeAccountProvider);
+      _ref.invalidate(accountListProvider);
+      return 'User ${session.accessToken}';
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+final accountSessionProvider = Provider<AccountSession>(AccountSession.new);

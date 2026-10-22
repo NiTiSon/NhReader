@@ -79,11 +79,20 @@ class _AccountSelector extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: AccountAvatar(url: profile?.avatarUrl ?? account?.avatarUrl),
-      title: Text(
-        account == null
-            ? 'Guest'
-            : profile?.username ?? account!.username ?? account!.maskedKey,
-        style: theme.textTheme.titleMedium,
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              account == null ? 'Guest' : profile?.username ?? account!.label,
+              style: theme.textTheme.titleMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (account is TokenAccount) ...[
+            const SizedBox(width: 8),
+            const ApiTokenBadge(),
+          ],
+        ],
       ),
       subtitle: Text(
         account == null ? 'Tap to log in or switch account' : 'Signed in',

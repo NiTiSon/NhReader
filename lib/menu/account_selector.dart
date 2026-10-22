@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/user.dart';
+import '../auth/login_page.dart';
 import '../home/home_feed.dart';
 import '../settings/account.dart';
 import '../settings/settings_providers.dart';
@@ -48,6 +49,28 @@ class AccountAvatar extends StatelessWidget {
           fit: BoxFit.cover,
           placeholder: (_, _) => _fallback,
           errorWidget: (_, _, _) => _fallback,
+        ),
+      ),
+    );
+  }
+}
+
+class ApiTokenBadge extends StatelessWidget {
+  const ApiTokenBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        'API Key',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSecondaryContainer,
         ),
       ),
     );
@@ -124,10 +147,19 @@ class _AccountSheet extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: FilledButton.icon(
-              onPressed: () => _logIn(context, ref),
-              icon: const Icon(Icons.login),
-              label: const Text('Log in'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => _logIn(context),
+                  icon: const Icon(Icons.login),
+                  label: const Text('Log in'),
+                ),
+                TextButton(
+                  onPressed: () => _useApiKey(context, ref),
+                  child: const Text('Use an API key'),
+                ),
+              ],
             ),
           ),
         ],
@@ -147,10 +179,18 @@ class _AccountSheet extends ConsumerWidget {
     if (context.mounted) Navigator.of(context).pop();
   }
 
-  Future<void> _logIn(BuildContext context, WidgetRef ref) async {
+  Future<void> _logIn(BuildContext context) async {
+    // LoginPage activates the account before popping, so just close the sheet.
+    final account = await Navigator.of(context).push<Account>(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+    if (account != null && context.mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _useApiKey(BuildContext context, WidgetRef ref) async {
     final account = await showDialog<Account>(
       context: context,
-      builder: (_) => const _LoginDialog(),
+      builder: (_) => const _ApiKeyDialog(),
     );
     if (account == null || !context.mounted) return;
     await ref.read(settingsProvider).setActiveAccountId(account.id);
@@ -176,8 +216,19 @@ class _AccountTile extends ConsumerWidget {
     final profile = active ? ref.watch(userProfileProvider).valueOrNull : null;
     return ListTile(
       leading: AccountAvatar(url: profile?.avatarUrl ?? account.avatarUrl),
-      title: Text(
-        profile?.username ?? account.username ?? account.maskedKey,
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              profile?.username ?? account.label,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (account is TokenAccount) ...[
+            const SizedBox(width: 8),
+            const ApiTokenBadge(),
+          ],
+        ],
       ),
       trailing: active ? const Icon(Icons.check) : null,
       selected: active,
@@ -186,16 +237,15 @@ class _AccountTile extends ConsumerWidget {
   }
 }
 
-/// shortcut: log-in collects an API key, the only credential accounts store;
-/// replace with the real username/password + captcha flow when it lands.
-class _LoginDialog extends ConsumerStatefulWidget {
-  const _LoginDialog();
+/// Advanced login path for API keys. Most people should use [LoginPage].
+class _ApiKeyDialog extends ConsumerStatefulWidget {
+  const _ApiKeyDialog();
 
   @override
-  ConsumerState<_LoginDialog> createState() => _LoginDialogState();
+  ConsumerState<_ApiKeyDialog> createState() => _ApiKeyDialogState();
 }
 
-class _LoginDialogState extends ConsumerState<_LoginDialog> {
+class _ApiKeyDialogState extends ConsumerState<_ApiKeyDialog> {
   final _controller = TextEditingController();
   bool _saving = false;
   String? _error;
@@ -234,7 +284,7 @@ class _LoginDialogState extends ConsumerState<_LoginDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Log in'),
+      title: const Text('Use an API key'),
       content: TextField(
         controller: _controller,
         autofocus: true,

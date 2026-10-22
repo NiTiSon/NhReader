@@ -1,35 +1,63 @@
 import 'package:dio/dio.dart';
 
+import 'auth.dart';
 import 'gallery.dart';
 import 'user.dart';
 
 /// Thin typed wrapper over the nhentai REST API v2.
 ///
-/// Public endpoints work without credentials; passing an API key upgrades
-/// the request to `auth=key`, which raises the `/galleries` rate limit from
-/// 15/min to 30/min and personalizes results.
+/// Public endpoints work without credentials; passing an account upgrades the
+/// request to `Authorization: Key <api-key>` or `User <access-token>`, which
+/// raises the `/galleries` rate limit and personalizes results.
 class NhentaiApi {
-  NhentaiApi({Future<String?> Function()? apiKeyProvider}) {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: 'https://nhentai.net',
-        headers: {
-          'User-Agent': 'NhReader/0.1.0 (https://github.com/NiTiSon/NhReader)',
-        },
-      ),
+  NhentaiApi({
+    Future<String?> Function()? authorizationProvider,
+    Future<String?> Function()? refreshAuthorization,
+  }) {
+    final options = BaseOptions(
+      baseUrl: 'https://nhentai.net',
+      headers: {
+        'User-Agent': 'NhReader/0.1.0 (https://github.com/NiTiSon/NhReader)',
+      },
     );
-    if (apiKeyProvider != null) {
+    _dio = Dio(options);
+    // Login and refresh must not go through the interceptor: refresh would
+    // otherwise retry itself and login would send the old account's token.
+    _authDio = Dio(options);
+    if (authorizationProvider != null) {
       _dio.interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) async {
             // Resolved per request, so changing the active account takes
             // effect without rebuilding the client (and without a double
             // fetch on launch).
-            final key = await apiKeyProvider();
-            if (key != null && key.isNotEmpty) {
-              options.headers['Authorization'] = 'Key $key';
+            final header = await authorizationProvider();
+            if (header != null && header.isNotEmpty) {
+              options.headers['Authorization'] = header;
             }
             handler.next(options);
+          },
+          onError: (error, handler) async {
+            final canRefresh =
+                refreshAuthorization != null &&
+                error.response?.statusCode == 401 &&
+                error.requestOptions.extra['retried'] != true;
+            if (!canRefresh) {
+              handler.next(error);
+              return;
+            }
+            error.requestOptions.extra['retried'] = true;
+            try {
+              final header = await refreshAuthorization();
+              if (header == null) {
+                handler.next(error);
+                return;
+              }
+              error.requestOptions.headers['Authorization'] = header;
+              handler.resolve(await _dio.fetch(error.requestOptions));
+            } catch (_) {
+              handler.next(error);
+            }
           },
         ),
       );
@@ -37,6 +65,7 @@ class NhentaiApi {
   }
 
   late final Dio _dio;
+  late final Dio _authDio;
 
   /// Today's popular galleries. Rate limit: 8/min per IP.
   Future<List<GalleryListItem>> popular() async {
@@ -57,10 +86,54 @@ class NhentaiApi {
         .then((r) => PaginatedGalleries.fromJson(r.data!));
   }
 
-  /// Profile of the owner of the configured API key.
+  /// Profile of the active account (API key or user token).
   Future<UserProfile> me() async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v2/user');
     return UserProfile.fromJson(response.data!);
+  }
+
+  Future<PowChallenge> pow(String action) async {
+    final response = await _authDio.get<Map<String, dynamic>>(
+      '/api/v2/pow',
+      queryParameters: {'action': action},
+    );
+    return PowChallenge.fromJson(response.data!);
+  }
+
+  Future<CaptchaConfig> captcha() async {
+    final response = await _authDio.get<Map<String, dynamic>>(
+      '/api/v2/captcha',
+    );
+    return CaptchaConfig.fromJson(response.data!);
+  }
+
+  Future<AuthSession> login({
+    required String username,
+    required String password,
+    required String powChallenge,
+    required String powNonce,
+    required String captchaResponse,
+  }) async {
+    final response = await _authDio.post<Map<String, dynamic>>(
+      '/api/v2/auth/login',
+      data: {
+        'username': username,
+        'password': password,
+        'pow_challenge': powChallenge,
+        'pow_nonce': powNonce,
+        'captcha_response': captchaResponse,
+      },
+    );
+    return AuthSession.fromJson(response.data!);
+  }
+
+  /// Exchanges a refresh token. The server rotates both tokens.
+  Future<AuthSession> refresh(String refreshToken) async {
+    final response = await _authDio.post<Map<String, dynamic>>(
+      '/api/v2/auth/refresh',
+      data: {'refresh_token': refreshToken},
+    );
+    return AuthSession.fromJson(response.data!);
   }
 
   // TODO: create separate class for CDN servers

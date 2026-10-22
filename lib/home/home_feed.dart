@@ -28,14 +28,15 @@ class HomeFeed {
   }
 }
 
-/// Anonymous requests are allowed, but attaching the active account's API key
+/// Anonymous requests are allowed, but attaching the active account
 /// raises the `/galleries` rate limit and personalizes the results.
-final nhentaiApiProvider = Provider<NhentaiApi>(
-  (ref) => NhentaiApi(
-    apiKeyProvider: () async =>
-        (await ref.read(activeAccountProvider.future))?.apiKey,
-  ),
-);
+final nhentaiApiProvider = Provider<NhentaiApi>((ref) {
+  final session = ref.watch(accountSessionProvider);
+  return NhentaiApi(
+    authorizationProvider: session.authorizationHeader,
+    refreshAuthorization: session.refresh,
+  );
+});
 
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
   final api = ref.watch(nhentaiApiProvider);
