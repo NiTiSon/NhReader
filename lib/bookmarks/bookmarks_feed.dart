@@ -15,6 +15,7 @@ class BookmarksFeed {
     this.guest = false,
     this.loadingMore = false,
     this.moreError = false,
+    this.newestFirst = true,
   });
 
   const BookmarksFeed.guest()
@@ -24,7 +25,8 @@ class BookmarksFeed {
       numPages = 0,
       guest = true,
       loadingMore = false,
-      moreError = false;
+      moreError = false,
+      newestFirst = true;
 
   final List<GalleryListItem> items;
   final List<String> servers;
@@ -33,6 +35,11 @@ class BookmarksFeed {
   final bool guest;
   final bool loadingMore;
   final bool moreError;
+  final bool newestFirst;
+
+  bool get hasMore => newestFirst ? page < numPages : page > 1;
+
+  int get nextPage => newestFirst ? page + 1 : page - 1;
 
   BookmarksFeed copyWith({
     List<GalleryListItem>? items,
@@ -49,6 +56,7 @@ class BookmarksFeed {
       guest: guest,
       loadingMore: loadingMore ?? this.loadingMore,
       moreError: moreError ?? this.moreError,
+      newestFirst: newestFirst,
     );
   }
 }
@@ -69,22 +77,39 @@ class BookmarksNotifier extends AutoDisposeAsyncNotifier<BookmarksFeed> {
     // rebuild the feed.
     final accountFuture = ref.watch(activeAccountProvider.future);
     final query = ref.watch(bookmarksQueryProvider).trim();
+    final newestFirst = ref.watch(bookmarksNewestFirstProvider);
     final api = ref.watch(nhentaiApiProvider);
 
     final account = await accountFuture;
     if (account == null) return const BookmarksFeed.guest();
 
-    final (favorites, servers) = await (
+    final (firstPage, servers) = await (
       api.favorites(q: query.isEmpty ? null : query),
       api.thumbServers(),
     ).wait;
 
+    // The endpoint only pages newest-first. Oldest-first starts at the last
+    // page and walks backwards, reversing each page.
+    final lastPageNumber = firstPage.numPages;
+    final page = !newestFirst && lastPageNumber > 1
+        ? await api.favorites(
+            q: query.isEmpty ? null : query,
+            page: lastPageNumber,
+          )
+        : firstPage;
+
     return BookmarksFeed(
-      items: favorites.items.where((g) => !g.blacklisted).toList(),
+      items: _visible(page, newestFirst),
       servers: servers,
-      page: 1,
-      numPages: favorites.numPages,
+      page: newestFirst ? 1 : lastPageNumber,
+      numPages: page.numPages,
+      newestFirst: newestFirst,
     );
+  }
+
+  List<GalleryListItem> _visible(PaginatedGalleries page, bool newestFirst) {
+    final items = page.items.where((g) => !g.blacklisted).toList();
+    return newestFirst ? items : items.reversed.toList();
   }
 
   Future<void> loadMore() async {
@@ -92,7 +117,7 @@ class BookmarksNotifier extends AutoDisposeAsyncNotifier<BookmarksFeed> {
     if (current == null ||
         current.guest ||
         current.loadingMore ||
-        current.page >= current.numPages) {
+        !current.hasMore) {
       return;
     }
 
@@ -100,10 +125,11 @@ class BookmarksNotifier extends AutoDisposeAsyncNotifier<BookmarksFeed> {
     state = AsyncData(loading);
 
     final query = ref.read(bookmarksQueryProvider).trim();
+    final page = current.nextPage;
     try {
       final favorites = await ref
           .read(nhentaiApiProvider)
-          .favorites(q: query.isEmpty ? null : query, page: current.page + 1);
+          .favorites(q: query.isEmpty ? null : query, page: page);
       // A query/account change may have started a new build while this page
       // was in flight; do not overwrite its newer state.
       if (state.valueOrNull != loading) return;
@@ -111,9 +137,9 @@ class BookmarksNotifier extends AutoDisposeAsyncNotifier<BookmarksFeed> {
         loading.copyWith(
           items: [
             ...loading.items,
-            ...favorites.items.where((g) => !g.blacklisted),
+            ..._visible(favorites, loading.newestFirst),
           ],
-          page: current.page + 1,
+          page: page,
           numPages: favorites.numPages,
           loadingMore: false,
         ),

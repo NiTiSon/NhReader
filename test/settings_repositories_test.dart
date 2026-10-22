@@ -24,10 +24,10 @@ void main() {
 
       final accounts = await repo.readAll();
       expect(accounts.map((a) => a.id), [alice.id, bob.id]);
-      expect(
-        accounts.map((a) => (a as TokenAccount).apiKey),
-        ['key-a', 'key-b'],
-      );
+      expect(accounts.map((a) => (a as TokenAccount).apiKey), [
+        'key-a',
+        'key-b',
+      ]);
     });
 
     test('remove deletes only the given account', () async {
@@ -148,32 +148,41 @@ void main() {
   group('SettingsRepository', () {
     test('defaults match the app defaults', () async {
       SharedPreferences.setMockInitialValues({});
-      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
 
       expect(settings.themeMode, ThemeMode.system);
       expect(settings.activeAccountId, isNull);
       expect(settings.bookmarksGrid, isTrue);
       expect(settings.bookmarksColumns, 3);
+      expect(settings.bookmarksNewestFirst, isTrue);
     });
 
     test('setters round-trip', () async {
       SharedPreferences.setMockInitialValues({});
-      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
 
       await settings.setThemeMode(ThemeMode.light);
       await settings.setActiveAccountId('42');
       await settings.setBookmarksGrid(false);
       await settings.setBookmarksColumns(4);
+      await settings.setBookmarksNewestFirst(false);
 
       expect(settings.themeMode, ThemeMode.light);
       expect(settings.activeAccountId, '42');
       expect(settings.bookmarksGrid, isFalse);
       expect(settings.bookmarksColumns, 4);
+      expect(settings.bookmarksNewestFirst, isFalse);
     });
 
     test('clearing the active account removes the key', () async {
       SharedPreferences.setMockInitialValues({});
-      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
 
       await settings.setActiveAccountId('42');
       await settings.setActiveAccountId(null);
@@ -183,7 +192,9 @@ void main() {
 
     test('secure window is off by default and round-trips', () async {
       SharedPreferences.setMockInitialValues({});
-      final settings = SettingsRepository(await SharedPreferences.getInstance());
+      final settings = SettingsRepository(
+        await SharedPreferences.getInstance(),
+      );
 
       expect(settings.secureWindow, isFalse);
 

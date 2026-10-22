@@ -39,8 +39,9 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   }
 }
 
-final themeModeProvider =
-    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);
 
 /// Live Secure Window choice. Applies FLAG_SECURE through a method channel,
 /// so the toggle takes effect immediately and is re-applied on launch.
@@ -55,8 +56,9 @@ class SecureWindowNotifier extends Notifier<bool> {
   }
 }
 
-final secureWindowProvider =
-    NotifierProvider<SecureWindowNotifier, bool>(SecureWindowNotifier.new);
+final secureWindowProvider = NotifierProvider<SecureWindowNotifier, bool>(
+  SecureWindowNotifier.new,
+);
 
 /// Live Grid/List choice for the bookmarks tab.
 class BookmarksGridNotifier extends Notifier<bool> {
@@ -69,8 +71,9 @@ class BookmarksGridNotifier extends Notifier<bool> {
   }
 }
 
-final bookmarksGridProvider =
-    NotifierProvider<BookmarksGridNotifier, bool>(BookmarksGridNotifier.new);
+final bookmarksGridProvider = NotifierProvider<BookmarksGridNotifier, bool>(
+  BookmarksGridNotifier.new,
+);
 
 /// Live Grid columns per row for the bookmarks tab.
 class BookmarksColumnsNotifier extends Notifier<int> {
@@ -86,6 +89,22 @@ class BookmarksColumnsNotifier extends Notifier<int> {
 final bookmarksColumnsProvider =
     NotifierProvider<BookmarksColumnsNotifier, int>(
       BookmarksColumnsNotifier.new,
+    );
+
+/// Live newest/oldest choice for the bookmarks tab.
+class BookmarksNewestFirstNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.read(settingsProvider).bookmarksNewestFirst;
+
+  Future<void> set(bool value) async {
+    state = value; // Update the UI first, then persist.
+    await ref.read(settingsProvider).setBookmarksNewestFirst(value);
+  }
+}
+
+final bookmarksNewestFirstProvider =
+    NotifierProvider<BookmarksNewestFirstNotifier, bool>(
+      BookmarksNewestFirstNotifier.new,
     );
 
 /// Every stored account, for the account selector.

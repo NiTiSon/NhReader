@@ -20,6 +20,7 @@ class BookmarksPage extends ConsumerStatefulWidget {
 class _BookmarksPageState extends ConsumerState<BookmarksPage> {
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
+  bool _loadMoreScheduled = false;
 
   @override
   void initState() {
@@ -135,6 +136,7 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
                 childAspectRatio: 0.68,
               ),
               delegate: SliverChildBuilderDelegate((context, i) {
+                if (i == feed.items.length - 1) _scheduleLoadMore(feed);
                 final gallery = feed.items[i];
                 return _BookmarkTile(
                   gallery: gallery,
@@ -148,6 +150,7 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, i) {
+                if (i == feed.items.length - 1) _scheduleLoadMore(feed);
                 final gallery = feed.items[i];
                 return _BookmarkRow(
                   gallery: gallery,
@@ -156,7 +159,7 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
               }, childCount: feed.items.length),
             ),
           ),
-        if (feed.page < feed.numPages)
+        if (feed.loadingMore || feed.moreError)
           SliverToBoxAdapter(
             child: _LoadMoreFooter(
               feed: feed,
@@ -169,7 +172,6 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
   }
 
   void _onSearchChanged(String value) {
-    // Rebuild so the clear button appears/disappears immediately.
     setState(() {});
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 500), () {
@@ -191,6 +193,31 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
     _applyQuery('');
   }
 
+  void _scheduleLoadMore(BookmarksFeed feed) {
+    if (_loadMoreScheduled ||
+        feed.loadingMore ||
+        feed.moreError ||
+        !feed.hasMore) {
+      return;
+    }
+    _loadMoreScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMoreScheduled = false;
+      if (!mounted) return;
+      final state = ref.read(bookmarksProvider);
+      final current = state.valueOrNull;
+      if (state is! AsyncData<BookmarksFeed> ||
+          current == null ||
+          current.guest ||
+          current.loadingMore ||
+          current.moreError ||
+          !current.hasMore) {
+        return;
+      }
+      ref.read(bookmarksProvider.notifier).loadMore();
+    });
+  }
+
   Future<void> _showSettings() {
     return showModalBottomSheet<void>(
       context: context,
@@ -207,6 +234,7 @@ class _BookmarksSettingsSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final grid = ref.watch(bookmarksGridProvider);
     final columns = ref.watch(bookmarksColumnsProvider);
+    final newestFirst = ref.watch(bookmarksNewestFirstProvider);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -253,6 +281,20 @@ class _BookmarksSettingsSheet extends ConsumerWidget {
               showSelectedIcon: false,
               onSelectionChanged: (selection) => ref
                   .read(bookmarksColumnsProvider.notifier)
+                  .set(selection.first),
+            ),
+            const SizedBox(height: 20),
+            Text('Sort by date', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: true, label: Text('Newest first')),
+                ButtonSegment(value: false, label: Text('Oldest first')),
+              ],
+              selected: {newestFirst},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) => ref
+                  .read(bookmarksNewestFirstProvider.notifier)
                   .set(selection.first),
             ),
           ],
@@ -377,10 +419,7 @@ class _LoadMoreFooter extends StatelessWidget {
                 dimension: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : TextButton(
-                onPressed: onPressed,
-                child: Text(feed.moreError ? 'Retry' : 'Load more'),
-              ),
+            : TextButton(onPressed: onPressed, child: const Text('Retry')),
       ),
     );
   }

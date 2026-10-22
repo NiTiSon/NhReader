@@ -10,6 +10,7 @@ class SettingsRepository {
   static const _keySecureWindow = 'secure_window';
   static const _keyBookmarksGrid = 'bookmarks_grid';
   static const _keyBookmarksColumns = 'bookmarks_columns';
+  static const _keyBookmarksNewestFirst = 'bookmarks_newest_first';
 
   final SharedPreferences _prefs;
 
@@ -47,4 +48,11 @@ class SettingsRepository {
 
   Future<void> setBookmarksColumns(int value) =>
       _prefs.setInt(_keyBookmarksColumns, value);
+
+  /// Whether bookmarks are shown newest first.
+  bool get bookmarksNewestFirst =>
+      _prefs.getBool(_keyBookmarksNewestFirst) ?? true;
+
+  Future<void> setBookmarksNewestFirst(bool value) =>
+      _prefs.setBool(_keyBookmarksNewestFirst, value);
 }

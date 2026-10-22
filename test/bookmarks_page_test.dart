@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nh_reader/api/gallery.dart';
 import 'package:nh_reader/api/nhentai_api.dart';
 import 'package:nh_reader/api/user.dart';
+import 'package:nh_reader/bookmarks/bookmarks_feed.dart';
 import 'package:nh_reader/bookmarks/bookmarks_page.dart';
 import 'package:nh_reader/home/home_feed.dart';
 import 'package:nh_reader/settings/account.dart';
@@ -35,9 +36,8 @@ class _FakeApi extends NhentaiApi {
   Future<PaginatedGalleries> favorites({String? q, int page = 1}) async {
     queries.add(q);
     pages.add(page);
-    final items = page == 1
-        ? [item(0), item(1), item(2), item(3)]
-        : [item(100 + page)];
+    final start = page == 1 ? 0 : page * 100;
+    final items = [for (var i = start; i < start + 25; i++) item(i)];
     final filtered = q == null
         ? items
         : items
@@ -155,10 +155,7 @@ void main() {
 
     final page = find.byType(BookmarksPage);
     await tester.tap(
-      find.descendant(
-        of: page,
-        matching: find.byIcon(Icons.settings_outlined),
-      ),
+      find.descendant(of: page, matching: find.byIcon(Icons.settings_outlined)),
     );
     await tester.pumpAndSettle();
     expect(find.text('Columns per row'), findsOneWidget);
@@ -195,16 +192,62 @@ void main() {
     expect(find.text('Gallery 3'), findsWidgets);
   });
 
-  testWidgets('load more appends the next page', (tester) async {
+  testWidgets('sort by date switches ends of the favorites list', (
+    tester,
+  ) async {
     final api = _FakeApi(numPages: 2);
     await pumpApp(tester, overrides: _signedIn(api));
     await _openBookmarks(tester);
 
-    expect(find.text('Gallery 102'), findsNothing);
-    await tester.tap(find.text('Load more'));
+    final page = find.byType(BookmarksPage);
+    await tester.tap(
+      find.descendant(of: page, matching: find.byIcon(Icons.settings_outlined)),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Gallery 102'), findsOneWidget);
+    await tester.tap(find.text('Oldest first'));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(BookmarksPage)),
+    );
+    expect(container.read(bookmarksNewestFirstProvider), isFalse);
+    expect(container.read(settingsProvider).bookmarksNewestFirst, isFalse);
+    expect(api.pages, [1, 1, 2]);
+
+    var feed = container.read(bookmarksProvider).valueOrNull!;
+    expect(feed.items.first.id, 224);
+    expect(feed.items.last.id, 200);
+    expect(feed.page, 2);
+
+    await tester.tap(find.text('Newest first'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(bookmarksNewestFirstProvider), isTrue);
+    feed = container.read(bookmarksProvider).valueOrNull!;
+    expect(feed.items.first.id, 0);
+    expect(feed.items.last.id, 24);
+    expect(feed.page, 1);
+  });
+
+  testWidgets('reaching the end loads the next page', (tester) async {
+    final api = _FakeApi(numPages: 2);
+    await pumpApp(tester, overrides: _signedIn(api));
+    await _openBookmarks(tester);
+
+    expect(api.pages, [1]);
+    expect(find.text('Gallery 200'), findsNothing);
+
+    final scroll = find.descendant(
+      of: find.byType(BookmarksPage),
+      matching: find.byType(CustomScrollView),
+    );
+    await tester.drag(scroll, const Offset(0, -3000));
+    await tester.pumpAndSettle();
+
     expect(api.pages, [1, 2]);
+    await tester.drag(scroll, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(find.text('Gallery 200'), findsOneWidget);
   });
 }
