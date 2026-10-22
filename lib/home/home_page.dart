@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/gallery.dart';
+import '../widgets/gallery_cover.dart';
 import 'home_feed.dart';
 
 /// Width / height of a gallery tile, shared by the carousel and the grid so
@@ -140,7 +140,7 @@ class _PopularCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _CoverImage(url: feed.thumbnailUrl(gallery)),
+          GalleryCover(url: feed.thumbnailUrl(gallery)),
           // Scrim keeps the overlaid title readable over any cover art.
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -209,7 +209,7 @@ class _GalleryTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _CoverImage(url: feed.thumbnailUrl(gallery)),
+          GalleryCover(url: feed.thumbnailUrl(gallery)),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -235,31 +235,6 @@ class _GalleryTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CoverImage extends StatelessWidget {
-  const _CoverImage({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    if (url.isEmpty) {
-      return const ColoredBox(
-        color: Color(0xFF1A1218),
-        child: Icon(Icons.broken_image_outlined),
-      );
-    }
-    return CachedNetworkImage(
-      imageUrl: url,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => const ColoredBox(color: Color(0xFF_1A1218)),
-      errorWidget: (context, url, error) => const ColoredBox(
-        color: Color(0xFF_1A1218),
-        child: Icon(Icons.broken_image_outlined),
       ),
     );
   }

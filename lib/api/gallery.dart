@@ -49,6 +49,17 @@ class GalleryListItem {
       : englishTitle;
 }
 
+/// Joins a CDN server with the item's relative thumbnail path. The API
+/// returns paths, not URLs, and explicitly forbids guessing hosts.
+String cdnThumbnailUrl(List<String> servers, GalleryListItem gallery) {
+  if (servers.isEmpty) return '';
+  final server = servers[gallery.id % servers.length];
+  final path = gallery.thumbnail.startsWith('/')
+      ? gallery.thumbnail
+      : '/${gallery.thumbnail}';
+  return '$server$path';
+}
+
 /// Envelope for `GET /api/v2/galleries`. Note the field is `result`, and
 /// there is no `page` field — track the current page yourself.
 class PaginatedGalleries {

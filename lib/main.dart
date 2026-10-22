@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'bookmarks/bookmarks_page.dart';
 import 'home/home_page.dart';
 import 'menu/menu_page.dart';
 import 'settings/secure_window_channel.dart';
@@ -101,21 +102,28 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   // Home is the landing tab.
   int _index = 1;
+  // Build Bookmarks on first visit so favorites are not fetched at launch.
+  bool _bookmarksVisited = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [
-          _PlaceholderPage(key: ValueKey('bookmarks-page'), label: 'Bookmarks'),
-          HomePage(key: ValueKey('home-page')),
-          MenuPage(),
+        children: [
+          _bookmarksVisited
+              ? const BookmarksPage(key: ValueKey('bookmarks-page'))
+              : const SizedBox.shrink(),
+          const HomePage(key: ValueKey('home-page')),
+          const MenuPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: (i) => setState(() {
+          _index = i;
+          if (i == 0) _bookmarksVisited = true;
+        }),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.bookmark_border),
@@ -131,30 +139,6 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: 'Menu',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({super.key, required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return RefreshIndicator(
-      // shortcut: no data source yet, swap for the real refresh once the API layer lands.
-      onRefresh: () async {},
-      child: CustomScrollView(
-        // Always draggable so pull-to-refresh works on an empty screen.
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: SafeArea(child: Center(child: Text(label))),
           ),
         ],
       ),

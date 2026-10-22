@@ -152,6 +152,8 @@ void main() {
 
       expect(settings.themeMode, ThemeMode.system);
       expect(settings.activeAccountId, isNull);
+      expect(settings.bookmarksGrid, isTrue);
+      expect(settings.bookmarksColumns, 3);
     });
 
     test('setters round-trip', () async {
@@ -160,9 +162,13 @@ void main() {
 
       await settings.setThemeMode(ThemeMode.light);
       await settings.setActiveAccountId('42');
+      await settings.setBookmarksGrid(false);
+      await settings.setBookmarksColumns(4);
 
       expect(settings.themeMode, ThemeMode.light);
       expect(settings.activeAccountId, '42');
+      expect(settings.bookmarksGrid, isFalse);
+      expect(settings.bookmarksColumns, 4);
     });
 
     test('clearing the active account removes the key', () async {

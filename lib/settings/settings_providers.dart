@@ -58,6 +58,36 @@ class SecureWindowNotifier extends Notifier<bool> {
 final secureWindowProvider =
     NotifierProvider<SecureWindowNotifier, bool>(SecureWindowNotifier.new);
 
+/// Live Grid/List choice for the bookmarks tab.
+class BookmarksGridNotifier extends Notifier<bool> {
+  @override
+  bool build() => ref.read(settingsProvider).bookmarksGrid;
+
+  Future<void> set(bool value) async {
+    state = value; // Update the UI first, then persist.
+    await ref.read(settingsProvider).setBookmarksGrid(value);
+  }
+}
+
+final bookmarksGridProvider =
+    NotifierProvider<BookmarksGridNotifier, bool>(BookmarksGridNotifier.new);
+
+/// Live Grid columns per row for the bookmarks tab.
+class BookmarksColumnsNotifier extends Notifier<int> {
+  @override
+  int build() => ref.read(settingsProvider).bookmarksColumns;
+
+  Future<void> set(int value) async {
+    state = value; // Update the UI first, then persist.
+    await ref.read(settingsProvider).setBookmarksColumns(value);
+  }
+}
+
+final bookmarksColumnsProvider =
+    NotifierProvider<BookmarksColumnsNotifier, int>(
+      BookmarksColumnsNotifier.new,
+    );
+
 /// Every stored account, for the account selector.
 final accountListProvider = FutureProvider.autoDispose<List<Account>>(
   (ref) => ref.watch(accountsProvider).readAll(),

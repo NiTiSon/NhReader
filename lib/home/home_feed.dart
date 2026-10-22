@@ -16,16 +16,8 @@ class HomeFeed {
   final List<GalleryListItem> popular;
   final PaginatedGalleries newUploads;
 
-  /// Joins a CDN server with the item's relative thumbnail path. The API
-  /// returns paths, not URLs, and explicitly forbids guessing hosts.
-  String thumbnailUrl(GalleryListItem gallery) {
-    if (servers.isEmpty) return '';
-    final server = servers[gallery.id % servers.length];
-    final path = gallery.thumbnail.startsWith('/')
-        ? gallery.thumbnail
-        : '/${gallery.thumbnail}';
-    return '$server$path';
-  }
+  String thumbnailUrl(GalleryListItem gallery) =>
+      cdnThumbnailUrl(servers, gallery);
 }
 
 /// Anonymous requests are allowed, but attaching the active account

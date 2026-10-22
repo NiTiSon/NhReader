@@ -8,6 +8,8 @@ class SettingsRepository {
   static const _keyTheme = 'theme';
   static const _keyActiveAccountId = 'active_account_id';
   static const _keySecureWindow = 'secure_window';
+  static const _keyBookmarksGrid = 'bookmarks_grid';
+  static const _keyBookmarksColumns = 'bookmarks_columns';
 
   final SharedPreferences _prefs;
 
@@ -30,4 +32,19 @@ class SettingsRepository {
 
   Future<void> setSecureWindow(bool value) =>
       _prefs.setBool(_keySecureWindow, value);
+
+  /// Grid layout for bookmarks; false means a list.
+  bool get bookmarksGrid => _prefs.getBool(_keyBookmarksGrid) ?? true;
+
+  Future<void> setBookmarksGrid(bool value) =>
+      _prefs.setBool(_keyBookmarksGrid, value);
+
+  /// Grid columns per row, kept between 2 and 4.
+  int get bookmarksColumns {
+    final value = _prefs.getInt(_keyBookmarksColumns) ?? 3;
+    return value < 2 ? 2 : (value > 4 ? 4 : value);
+  }
+
+  Future<void> setBookmarksColumns(int value) =>
+      _prefs.setInt(_keyBookmarksColumns, value);
 }

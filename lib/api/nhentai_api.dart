@@ -86,6 +86,19 @@ class NhentaiApi {
         .then((r) => PaginatedGalleries.fromJson(r.data!));
   }
 
+  /// The active account's favorite galleries. Requires credentials.
+  Future<PaginatedGalleries> favorites({String? q, int page = 1}) {
+    return _dio
+        .get<Map<String, dynamic>>(
+          '/api/v2/favorites',
+          queryParameters: {
+            'page': page,
+            if (q != null && q.isNotEmpty) 'q': q,
+          },
+        )
+        .then((r) => PaginatedGalleries.fromJson(r.data!));
+  }
+
   /// Profile of the active account (API key or user token).
   Future<UserProfile> me() async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v2/user');
