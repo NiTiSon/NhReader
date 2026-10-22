@@ -1,18 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/user.dart';
+import '../settings/account.dart';
+import '../settings/settings_providers.dart';
 import 'about_page.dart';
+import 'account_selector.dart';
 import 'options_page.dart';
 
-/// Menu tab: account placeholder plus links to the app's utility screens.
-class MenuPage extends StatelessWidget {
+/// Menu tab: account picker plus links to the app's utility screens.
+class MenuPage extends ConsumerWidget {
   const MenuPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final account = ref.watch(activeAccountProvider).valueOrNull;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
     return SafeArea(
       child: ListView(
         children: [
-          const _AccountSelector(),
+          _AccountSelector(
+            account: account,
+            profile: profile,
+            onTap: () => showAccountSelector(context),
+          ),
+          ListTile(
+            // Only signed-in accounts have data to edit.
+            enabled: account != null,
+            leading: const Icon(Icons.manage_accounts_outlined),
+            title: const Text('Profile'),
+            // TODO: open the account editor once it exists.
+            onTap: account == null ? null : () {},
+          ),
           const Divider(height: 30),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
@@ -44,31 +63,33 @@ class MenuPage extends StatelessWidget {
 }
 
 class _AccountSelector extends StatelessWidget {
-  const _AccountSelector();
+  const _AccountSelector({
+    required this.account,
+    required this.profile,
+    required this.onTap,
+  });
+
+  final Account? account;
+  final UserProfile? profile;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const CircleAvatar(child: Icon(Icons.person)),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Guest', style: theme.textTheme.titleMedium),
-                Text(
-                  'Account selector placeholder',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-        ],
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: AccountAvatar(url: profile?.avatarUrl ?? account?.avatarUrl),
+      title: Text(
+        account == null
+            ? 'Guest'
+            : profile?.username ?? account!.username ?? account!.maskedKey,
+        style: theme.textTheme.titleMedium,
       ),
+      subtitle: Text(
+        account == null ? 'Tap to log in or switch account' : 'Signed in',
+      ),
+      trailing: const Icon(Icons.expand_more),
+      onTap: onTap,
     );
   }
 }

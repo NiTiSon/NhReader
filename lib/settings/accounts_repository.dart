@@ -39,6 +39,25 @@ class AccountsRepository {
     });
   }
 
+  /// Caches the profile with the account, so the name and avatar survive a
+  /// restart and work offline.
+  Future<void> setProfile(
+    String id, {
+    required String username,
+    required String avatarUrl,
+  }) {
+    return _synchronized(() async {
+      final accounts = await readAll();
+      await _write([
+        for (final account in accounts)
+          if (account.id == id)
+            account.withProfile(username: username, avatarUrl: avatarUrl)
+          else
+            account,
+      ]);
+    });
+  }
+
   /// Chains read-modify-write calls so two quick saves can't drop an account.
   Future<T> _synchronized<T>(Future<T> Function() action) {
     final result = _lastWrite.then((_) => action(), onError: (_) => action());

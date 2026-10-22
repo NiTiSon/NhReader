@@ -39,6 +39,7 @@ HomeFeed fakeHomeFeed({int popularCount = 3, int newUploadsCount = 6}) {
 Future<void> pumpApp(
   WidgetTester tester, {
   Future<HomeFeed> Function()? feed,
+  List<Override> overrides = const [],
 }) async {
   // Phone-sized surface so layout-dependent tests match a real device.
   tester.view.physicalSize = const Size(400, 800);
@@ -54,6 +55,7 @@ Future<void> pumpApp(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         homeFeedProvider.overrideWith((_) => feedFactory()),
+        ...overrides,
       ],
       child: const NhReaderApp(),
     ),

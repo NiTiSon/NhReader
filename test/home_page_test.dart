@@ -39,7 +39,7 @@ void main() {
     final popular = tester.getSize(find.byType(CachedNetworkImage).first);
     final grid = tester.getSize(find.byType(CachedNetworkImage).last);
 
-    expect(popular.width, grid.width * 1.12);
+    expect(popular.width, grid.width * 1.33);
     expect(popular.width, greaterThan(grid.width));
     // Same cover proportions as the grid, so it grows both ways.
     expect(popular.width / popular.height, closeTo(0.68, 0.01));

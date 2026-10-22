@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'gallery.dart';
+import 'user.dart';
 
 /// Thin typed wrapper over the nhentai REST API v2.
 ///
@@ -54,6 +55,12 @@ class NhentaiApi {
           queryParameters: {'page': page, 'per_page': perPage},
         )
         .then((r) => PaginatedGalleries.fromJson(r.data!));
+  }
+
+  /// Profile of the owner of the configured API key.
+  Future<UserProfile> me() async {
+    final response = await _dio.get<Map<String, dynamic>>('/api/v2/user');
+    return UserProfile.fromJson(response.data!);
   }
 
   // TODO: create separate class for CDN servers

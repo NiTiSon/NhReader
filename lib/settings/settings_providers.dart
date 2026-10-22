@@ -57,6 +57,11 @@ class SecureWindowNotifier extends Notifier<bool> {
 final secureWindowProvider =
     NotifierProvider<SecureWindowNotifier, bool>(SecureWindowNotifier.new);
 
+/// Every stored account, for the account selector.
+final accountListProvider = FutureProvider.autoDispose<List<Account>>(
+  (ref) => ref.watch(accountsProvider).readAll(),
+);
+
 /// The account whose API key requests should use, or null in guest mode.
 final activeAccountProvider = FutureProvider<Account?>((ref) async {
   final id = ref.watch(settingsProvider).activeAccountId;

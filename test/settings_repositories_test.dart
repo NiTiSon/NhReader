@@ -36,6 +36,25 @@ void main() {
       expect(accounts.single.id, bob.id);
     });
 
+    test('setProfile caches the name and avatar with one account', () async {
+      final alice = await repo.add(apiKey: 'key-a');
+      final bob = await repo.add(apiKey: 'key-b');
+
+      await repo.setProfile(
+        alice.id,
+        username: 'Alice',
+        avatarUrl: 'https://i.nhentai.net/avatars/a.png',
+      );
+
+      final accounts = await repo.readAll();
+      expect(accounts.first.username, 'Alice');
+      expect(accounts.first.avatarUrl, 'https://i.nhentai.net/avatars/a.png');
+      expect(accounts.last.username, isNull);
+      expect(accounts.last.avatarUrl, isNull);
+      expect(accounts.last.id, bob.id);
+      expect(accounts.last.apiKey, 'key-b');
+    });
+
     test('concurrent adds keep every account', () async {
       await Future.wait([
         repo.add(apiKey: '1'),
