@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/gallery.dart';
+import '../format.dart';
+import '../gallery/gallery_page.dart';
 import '../widgets/gallery_cover.dart';
 import 'home_feed.dart';
 
@@ -179,7 +181,7 @@ class _PopularCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _formatCount(gallery.numFavorites),
+                      formatCount(gallery.numFavorites),
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: Colors.white70,
                       ),
@@ -187,6 +189,19 @@ class _PopularCard extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+          Positioned.fill(
+            child: Semantics(
+              button: true,
+              label: 'Open ${gallery.displayTitle}',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => openGallery(context, gallery.id),
+                ),
+              ),
             ),
           ),
         ],
@@ -231,6 +246,19 @@ class _GalleryTile extends StatelessWidget {
               style: theme.textTheme.labelSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Semantics(
+              button: true,
+              label: 'Open ${gallery.displayTitle}',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => openGallery(context, gallery.id),
+                ),
               ),
             ),
           ),
@@ -318,11 +346,4 @@ class _FeedMessage extends StatelessWidget {
       ],
     );
   }
-}
-
-// TODO: move to the utils
-String _formatCount(int count) {
-  if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
-  if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
-  return '$count';
 }

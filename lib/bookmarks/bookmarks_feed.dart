@@ -79,13 +79,14 @@ class BookmarksNotifier extends AutoDisposeAsyncNotifier<BookmarksFeed> {
     final query = ref.watch(bookmarksQueryProvider).trim();
     final newestFirst = ref.watch(bookmarksNewestFirstProvider);
     final api = ref.watch(nhentaiApiProvider);
+    final serversFuture = ref.watch(galleryCoverServersProvider.future);
 
     final account = await accountFuture;
     if (account == null) return const BookmarksFeed.guest();
 
     final (firstPage, servers) = await (
       api.favorites(q: query.isEmpty ? null : query),
-      api.thumbServers(),
+      serversFuture,
     ).wait;
 
     // The endpoint only pages newest-first. Oldest-first starts at the last

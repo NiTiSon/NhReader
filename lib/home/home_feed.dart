@@ -4,6 +4,12 @@ import '../api/gallery.dart';
 import '../api/nhentai_api.dart';
 import '../settings/settings_providers.dart';
 
+/// CDN config rarely changes, so fetch once per session and share across
+/// home, bookmarks and gallery screens.
+final galleryCoverServersProvider = FutureProvider<List<String>>(
+  (ref) => ref.watch(nhentaiApiProvider).thumbServers(),
+);
+
 /// Everything the home screen needs from one refresh, fetched concurrently.
 class HomeFeed {
   const HomeFeed({
@@ -32,12 +38,13 @@ final nhentaiApiProvider = Provider<NhentaiApi>((ref) {
 
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
   final api = ref.watch(nhentaiApiProvider);
+  final serversFuture = ref.watch(galleryCoverServersProvider.future);
   // shortcut: only the first page of New Uploads (25 items); add paging when
   // the grid needs infinite scroll.
   final (popular, newUploads, servers) = await (
     api.popular(),
     api.newUploads(),
-    api.thumbServers(),
+    serversFuture,
   ).wait;
 
   return HomeFeed(

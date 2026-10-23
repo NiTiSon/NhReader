@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/gallery.dart';
+import '../gallery/gallery_page.dart';
 import '../menu/account_selector.dart';
 import '../settings/settings_providers.dart';
 import '../widgets/gallery_cover.dart';
@@ -50,22 +51,41 @@ class _BookmarksPageState extends ConsumerState<BookmarksPage> {
           onSubmitted: _applyQuery,
           textInputAction: TextInputAction.search,
           autocorrect: false,
+          textAlignVertical: TextAlignVertical.center,
+          style: Theme.of(context).textTheme.bodyMedium,
           decoration: InputDecoration(
             hintText: 'Search bookmarks',
-            prefixIcon: const Icon(Icons.search, size: 20),
+            hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            prefixIcon: const Icon(Icons.search, size: 18),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 36,
+              minHeight: 36,
+            ),
             suffixIcon: _searchController.text.isEmpty
                 ? null
                 : IconButton(
                     tooltip: 'Clear search',
-                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    icon: const Icon(Icons.close, size: 18),
                     onPressed: _clearSearch,
                   ),
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 36,
+              minHeight: 36,
+            ),
             isDense: true,
             filled: true,
             fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(vertical: 6),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,
             ),
           ),
@@ -343,6 +363,19 @@ class _BookmarkTile extends StatelessWidget {
               ),
             ),
           ),
+          Positioned.fill(
+            child: Semantics(
+              button: true,
+              label: 'Open ${gallery.displayTitle}',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => openGallery(context, gallery.id),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -363,41 +396,48 @@ class _BookmarkRow extends StatelessWidget {
     final aspectRatio = width > 0 && height > 0 ? width / height : 0.68;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 64,
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: GalleryCover(url: url),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  gallery.displayTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${gallery.numPages} pages',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => openGallery(context, gallery.id),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 64,
+                child: AspectRatio(
+                  aspectRatio: aspectRatio,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: GalleryCover(url: url),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      gallery.displayTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${gallery.numPages} pages',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

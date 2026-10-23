@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'auth.dart';
 import 'gallery.dart';
+import 'network_trace.dart';
 import 'user.dart';
 
 /// Thin typed wrapper over the nhentai REST API v2.
@@ -24,6 +26,13 @@ class NhentaiApi {
     // Login and refresh must not go through the interceptor: refresh would
     // otherwise retry itself and login would send the old account's token.
     _authDio = Dio(options);
+    if (kDebugMode) {
+      // Added first so failed attempts are traced before the auth interceptor
+      // retries them.
+      final trace = NetworkTraceInterceptor();
+      _dio.interceptors.add(trace);
+      _authDio.interceptors.add(trace);
+    }
     if (authorizationProvider != null) {
       _dio.interceptors.add(
         InterceptorsWrapper(
@@ -84,6 +93,28 @@ class NhentaiApi {
           queryParameters: {'page': page, 'per_page': perPage},
         )
         .then((r) => PaginatedGalleries.fromJson(r.data!));
+  }
+
+  /// One gallery with the personalization needed by the title screen.
+  Future<GalleryDetail> galleryDetail(int id) {
+    return _dio
+        .get<Map<String, dynamic>>(
+          '/api/v2/galleries/$id',
+          queryParameters: {'include': 'favorite'},
+        )
+        .then((r) => GalleryDetail.fromJson(r.data!));
+  }
+
+  /// Add or remove a gallery from the active account's favorites.
+  Future<FavoriteResult> setFavorite(int id, bool favorited) async {
+    final response = favorited
+        ? await _dio.post<Map<String, dynamic>>(
+            '/api/v2/galleries/$id/favorite',
+          )
+        : await _dio.delete<Map<String, dynamic>>(
+            '/api/v2/galleries/$id/favorite',
+          );
+    return FavoriteResult.fromJson(response.data!);
   }
 
   /// The active account's favorite galleries. Requires credentials.
@@ -149,11 +180,17 @@ class NhentaiApi {
     return AuthSession.fromJson(response.data!);
   }
 
-  // TODO: create separate class for CDN servers
-  Future<List<String>> thumbServers() async {
+  /// CDN hosts for thumbnails and covers.
+  Future<List<String>> thumbServers() async =>
+      _serverList(await _cdnConfig(), 'thumb_servers');
+
+  Future<Map<String, dynamic>> _cdnConfig() async {
     final response = await _dio.get<Map<String, dynamic>>('/api/v2/cdn');
-    final servers = response.data?['thumb_servers'];
-    return (servers as List<dynamic>? ?? const <dynamic>[])
+    return response.data ?? const <String, dynamic>{};
+  }
+
+  List<String> _serverList(Map<String, dynamic> json, String key) {
+    return (json[key] as List<dynamic>? ?? const <dynamic>[])
         .cast<String>()
         .where((s) => s.isNotEmpty)
         .toList();
